@@ -24,6 +24,11 @@ html, body {
   height: 100%;
 }
 
+/* FIX GRID ARTIFACTS (extra safety) */
+.leaflet-tile {
+  image-rendering: auto;
+}
+
 /* PULSE MARKER */
 .pulse {
   width: 20px;
@@ -75,15 +80,17 @@ let map = L.map('map', {
   attributionControl: false
 }).setView([20, 0], 2);
 
-/* HYBRID MAP (SATELLITE + LABELS) */
+/* HYBRID MAP (FIXED GRID VERSION) */
 let tileLayer = L.tileLayer(
-  `https://api.maptiler.com/maps/hybrid/256/{z}/{x}/{y}.jpg?key=${MAPTILER_KEY}`,
+  `https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=${MAPTILER_KEY}`,
   {
-    tileSize: 256
+    tileSize: 512,
+    zoomOffset: -1,
+    detectRetina: true
   }
 ).addTo(map);
 
-/* DEBUG (optional log) */
+/* DEBUG */
 tileLayer.on('tileerror', function() {
   console.log("Tile load error");
 });
