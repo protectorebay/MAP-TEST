@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Earthquake World Monitor</title>
+<title>Earthquake World Map</title>
 
 <meta name="viewport" content="width=1920, initial-scale=1.0">
 
@@ -16,47 +16,12 @@ html, body {
   height: 1080px;
   overflow: hidden;
   background: black;
-  font-family: Arial, sans-serif;
 }
 
 /* MAP */
 #map {
   width: 100%;
   height: 100%;
-}
-
-/* ALERT PANEL */
-#alert {
-  position: absolute;
-  top: 40px;
-  left: 40px;
-
-  background: rgba(0,0,0,0.7);
-  color: white;
-  padding: 20px 25px;
-  border-radius: 12px;
-
-  border: 2px solid red;
-  box-shadow: 0 0 20px red;
-
-  min-width: 300px;
-}
-
-/* TEXT */
-#title {
-  font-size: 22px;
-  margin-bottom: 10px;
-}
-
-#details {
-  font-size: 14px;
-  color: #ccc;
-}
-
-#timeAgo {
-  margin-top: 8px;
-  font-size: 13px;
-  color: #aaa;
 }
 
 /* PULSE MARKER */
@@ -98,36 +63,32 @@ html, body {
 
 <div id="map"></div>
 
-<div id="alert">
-  <div id="title">Waiting for data...</div>
-  <div id="details"></div>
-  <div id="timeAgo"></div>
-</div>
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
 const API_URL = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson";
 const MAPTILER_KEY = "sygtoTM5lxScVNfPR99k";
 
+/* INIT MAP */
 let map = L.map('map', {
   zoomControl: false,
   attributionControl: false
 }).setView([20, 0], 2);
 
-/* TERRAIN MAP */
-let tileLayer = L.tileLayer(`https://api.maptiler.com/maps/topo-v2/256/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, {
-  tileSize: 256
-}).addTo(map);
+/* HYBRID MAP (SATELLITE + LABELS) */
+let tileLayer = L.tileLayer(
+  `https://api.maptiler.com/maps/hybrid/256/{z}/{x}/{y}.jpg?key=${MAPTILER_KEY}`,
+  {
+    tileSize: 256
+  }
+).addTo(map);
 
-/* TILE ERROR LOG */
+/* DEBUG (optional log) */
 tileLayer.on('tileerror', function() {
-  console.log("Tile load error - possible quota hit");
+  console.log("Tile load error");
 });
 
 let markersLayer = L.layerGroup().addTo(map);
-
-let lastEventTime = null;
 
 /* CREATE MARKER */
 function createMarker(lat, lon, isLatest) {
@@ -143,42 +104,7 @@ function createMarker(lat, lon, isLatest) {
   });
 }
 
-/* UPDATE ALERT */
-function updateAlert(feature) {
-  let p = feature.properties;
-  let c = feature.geometry.coordinates;
-
-  let mag = p.mag ?? "?";
-  let place = p.place || "Unknown";
-
-  lastEventTime = p.time;
-
-  document.getElementById("title").innerText =
-    "⚠️ M" + mag + " - " + place;
-
-  document.getElementById("details").innerHTML =
-    "Depth: " + c[2].toFixed(1) + " km<br>" +
-    "Lat: " + c[1].toFixed(3) + " | Lon: " + c[0].toFixed(3);
-}
-
-/* TIME AGO */
-function updateTimeAgo() {
-  if (!lastEventTime) return;
-
-  let diff = Math.floor((Date.now() - lastEventTime) / 1000);
-  let m = Math.floor(diff / 60);
-  let s = diff % 60;
-
-  if (s < 10) s = "0" + s;
-  if (m < 10) m = "0" + m;
-
-  document.getElementById("timeAgo").innerText =
-    m + ":" + s + " ago";
-}
-
-setInterval(updateTimeAgo, 1000);
-
-/* FETCH DATA */
+/* LOAD DATA */
 function loadData() {
   fetch(API_URL)
     .then(r => r.json())
@@ -200,10 +126,6 @@ function loadData() {
         );
 
         marker.addTo(markersLayer);
-
-        if (index === 0) {
-          updateAlert(f);
-        }
       });
 
     })
