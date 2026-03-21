@@ -23,50 +23,37 @@ html, body {
   height: 100%;
 }
 
-/* LABEL */
+/* LABEL (UPDATED) */
 .label {
-  background: rgba(0,0,0,0.7);
+  background: rgba(0,0,0,0.85);
   color: white;
   padding: 6px 10px;
   border-radius: 6px;
   font-size: 14px;
+  font-weight: bold;
   white-space: nowrap;
   border: 1px solid rgba(255,255,255,0.2);
 }
 
-/* RED PULSE (LATEST) */
-.pulse-red {
-  width: 20px;
-  height: 20px;
-  background: red;
+/* BASE MARKER STYLES */
+.marker {
   border-radius: 50%;
   position: relative;
 }
 
+/* RED PULSE */
 .pulse-red::after {
   content: "";
   position: absolute;
-  width: 20px;
-  height: 20px;
   border-radius: 50%;
   background: red;
   animation: pulse 2s infinite;
 }
 
-/* ORANGE SMALL PULSE */
-.pulse-orange {
-  width: 14px;
-  height: 14px;
-  background: orange;
-  border-radius: 50%;
-  position: relative;
-}
-
+/* ORANGE PULSE */
 .pulse-orange::after {
   content: "";
   position: absolute;
-  width: 14px;
-  height: 14px;
   border-radius: 50%;
   background: orange;
   animation: pulse 2s infinite;
@@ -76,14 +63,6 @@ html, body {
   0%   { transform: scale(1); opacity: 1; }
   70%  { transform: scale(2.5); opacity: 0; }
   100% { transform: scale(2.5); opacity: 0; }
-}
-
-/* NORMAL DOT */
-.dot {
-  width: 10px;
-  height: 10px;
-  background: orange;
-  border-radius: 50%;
 }
 </style>
 </head>
@@ -103,7 +82,7 @@ let map = L.map('map', {
   attributionControl: false
 }).setView([20, 0], 2);
 
-/* HYBRID MAP (GRID FIXED) */
+/* MAP */
 L.tileLayer(
   `https://api.maptiler.com/maps/hybrid/{z}/{x}/{y}.jpg?key=${MAPTILER_KEY}`,
   {
@@ -115,17 +94,38 @@ L.tileLayer(
 
 let markersLayer = L.layerGroup().addTo(map);
 
+/* SIZE BASED ON MAGNITUDE (SUBTLE SCALING) */
+function getSize(mag, base) {
+  if (!mag || mag < 2) return base;
+  if (mag < 3) return base + 2;
+  if (mag < 4) return base + 4;
+  if (mag < 5) return base + 6;
+  return base + 8;
+}
+
 /* CREATE MARKER */
-function createMarker(lat, lon, type) {
+function createMarker(lat, lon, type, mag) {
+  let size = 10;
+
+  if (type === "latest") size = getSize(mag, 18);
+  else if (type === "secondary") size = getSize(mag, 12);
+  else size = getSize(mag, 8);
+
   let el = document.createElement("div");
+  el.className = "marker";
 
-  if (type === "latest") el.className = "pulse-red";
-  else if (type === "secondary") el.className = "pulse-orange";
-  else el.className = "dot";
+  el.style.width = size + "px";
+  el.style.height = size + "px";
 
-  let size = 20;
-  if (type === "secondary") size = 14;
-  if (type === "dot") size = 10;
+  if (type === "latest") {
+    el.style.background = "red";
+    el.classList.add("pulse-red");
+  } else if (type === "secondary") {
+    el.style.background = "orange";
+    el.classList.add("pulse-orange");
+  } else {
+    el.style.background = "orange";
+  }
 
   return L.marker([lat, lon], {
     icon: L.divIcon({
@@ -159,7 +159,8 @@ function loadData() {
         let marker = createMarker(
           coords[1],
           coords[0],
-          type
+          type,
+          props.mag
         );
 
         marker.addTo(markersLayer);
